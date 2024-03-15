@@ -1,0 +1,16 @@
+{
+    "mongo": {
+        "server": "mongodb+srv://{username}:{password}@cluster0.nff3sst.mongodb.net?retryWrites=true&w=majority&appName=Cluster0",
+        "database_name": "TaskManagement",
+        "username_variable": "mongo_username",
+        "password_variable": "mongo_password"
+    },
+    "redis": {
+        "server": "redis-12442.c309.us-east-2-1.ec2.cloud.redislabs.com",
+        "password_variable": "redis_password",
+        "port": 12442
+    },
+    "server_port": 5000,
+    "app_secret_key_variable": "app_secret_key",
+    "enable_password_hashing": true
+}

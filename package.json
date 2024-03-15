@@ -1,0 +1,5 @@
+{
+    "scripts": {
+        "python-server": "cd server && python3 app.py"
+    }
+}
