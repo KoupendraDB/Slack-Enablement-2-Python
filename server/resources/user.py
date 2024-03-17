@@ -37,7 +37,12 @@ class User(Resource):
         query = {'username': username}
         user = mongo_client[database].user.find_one(query)
         if user:
-            if check_password_hash(user['password'], password):
+            is_correct_password = False
+            if config['enable_password_hashing']:
+                is_correct_password = check_password_hash(user['password'], password)
+            else:
+                is_correct_password = user['password'] == password
+            if is_correct_password:
                 token = encode_user(str(user['_id']))
                 return token
         return None
@@ -55,7 +60,7 @@ class User(Resource):
         if user:
             return {'success': False}, 409
         if config['enable_password_hashing']:
-            user_request['password'] = generate_password_hash(user_request['password'])
+            user_request['password'] = generate_password_hash(user_request['password'], 'pbkdf2')
         insert_result = self.user_database.insert_one(user_request)
         if insert_result and insert_result.inserted_id:
             result = {'success': True, 'user_id': str(insert_result.inserted_id)}, 201
