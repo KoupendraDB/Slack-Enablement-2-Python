@@ -11,9 +11,6 @@ class Task(Resource):
         self.cache_time = timedelta(minutes = 30)
         self.cache_masker = {
             '_id': {'unmask': str, 'mask': ObjectId},
-            'assignee': {'unmask': str, 'mask': ObjectId},
-            'created_by': {'unmask': str, 'mask': ObjectId},
-            'last_modified_by': {'unmask': str, 'mask': ObjectId},
             'eta_done': {'unmask': datetime.isoformat, 'mask': datetime.fromisoformat},
             'last_modified_at': {'unmask': datetime.isoformat, 'mask': datetime.fromisoformat},
             'created_at': {'unmask': datetime.isoformat, 'mask': datetime.fromisoformat}
@@ -43,7 +40,7 @@ class Task(Resource):
         for key in mandatory_fields:
             if key not in task_request:
                 return False
-        task['last_modified_by'] = task['created_by'] = creator['_id']
+        task['last_modified_by'] = task['created_by'] = creator['username']
         task['last_modified_at'] = task['created_at'] = datetime.now()
         task['title'] = task_request['title']
         task['status'] = task_request['status'] if 'status' in task_request else 'Ready'
@@ -51,18 +48,37 @@ class Task(Resource):
             task['eta_done'] = datetime.fromisoformat(task_request['eta_done'])
         assignee = self.user_resource.fetch_user_by_username(task_request['assignee'])
         if assignee:
-            task['assignee'] = assignee['_id']
+            task['assignee'] = assignee['username']
             return task
         return None
 
+    def modify_task(self, task_request, user):
+        task = {}
+        fields_to_exclude = ['_id', 'created_by', 'last_modified_by', 'created_at', 'last_modified_at']
+        for field in fields_to_exclude:
+            if field in task_request:
+                return None
+        task['last_modified_at'] = datetime.now()
+        task['last_modified_by'] = user['username']
+        if 'eta_done' in task_request:
+            task['eta_done'] = datetime.fromisoformat(task_request['eta_done'])
+        if 'assignee' in task_request:
+            assignee = self.user_resource.fetch_user_by_username(task_request['assignee'])
+            if assignee:
+                task['assignee'] = assignee['username']
+            else:
+                return None
+        for k, v in task_request.items():
+            if k not in ['assignee', 'eta_done']:
+                task[k] = v
+        return task
 
     @token_required
-    def get(self, task_id, user = None):
-        task = None
+    def get(self, task_id, user):
         if user:
             task = self.fetch_task_by_id(task_id)
-        if task:
-            return {'success': True, 'task': unmask_fields(task, self.cache_masker)}, 200
+            if task:
+                return {'success': True, 'task': unmask_fields(task, self.cache_masker)}, 200
         return {'success': False}, 404
 
     @token_required
@@ -76,5 +92,31 @@ class Task(Resource):
                 return result
             return {'success': False}, 400
         return {'success': False, 'message': 'Invalid data'}, 400
+    
+    @token_required
+    def patch(self, task_id, user):
+        task_request = request.get_json()
+        modified_task = self.modify_task(task_request, user)
+        if modified_task:
+            update_result = self.task_database.update_one({'_id': ObjectId(task_id)}, {'$set': modified_task})
+            if update_result and update_result.modified_count:
+                self.task_cache_controller.delete_cache('task_id:{}', task_id)
+                result = {'success': True}, 200
+                return result
+            return {'success': False}, 400
+        return {'success': False, 'message': 'Invalid data'}, 400
+    
+    @token_required
+    def delete(self, task_id, user):
+        if user:
+            task = self.fetch_task_by_id(task_id)
+            if task and task['created_by'] != user['username']:
+                return {'success': False, 'message': 'Only the task creator can delete the task!'}, 401
+            delete_result = self.task_database.delete_one({'_id': ObjectId(task_id)})
+            if delete_result and delete_result.deleted_count:
+                self.task_cache_controller.delete_cache('task_id:{}', task_id)
+                return {'success': True}, 200
+        return {'success': False}, 404
+
 
 from app import mongo_client, redis_client, database
