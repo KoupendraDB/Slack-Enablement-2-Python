@@ -1,5 +1,5 @@
 from flask_restful import Resource, request
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date
 from .helpers.cache import RedisCacheController
 from bson.objectid import ObjectId
 from .helpers.middlewares import token_required
@@ -11,7 +11,7 @@ class Task(Resource):
         self.cache_time = timedelta(minutes = 30)
         self.cache_masker = {
             '_id': {'unmask': str, 'mask': ObjectId},
-            'eta_done': {'unmask': datetime.isoformat, 'mask': datetime.fromisoformat},
+            'eta_done': {'unmask': date.isoformat, 'mask': datetime.fromisoformat},
             'last_modified_at': {'unmask': datetime.isoformat, 'mask': datetime.fromisoformat},
             'created_at': {'unmask': datetime.isoformat, 'mask': datetime.fromisoformat}
         }

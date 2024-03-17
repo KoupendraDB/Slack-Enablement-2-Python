@@ -23,6 +23,9 @@ def create_app():
     from resources.task import Task
     api.add_resource(Task, '/task', '/task/<string:task_id>', endpoint = 'task')
 
+    from resources.tasks import Tasks
+    api.add_resource(Tasks, '/tasks', endpoint = 'tasks')
+
     @app.route('/login', methods = ['POST'])
     def login():
         body = request.get_json()
