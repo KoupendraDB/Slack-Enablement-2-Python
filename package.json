@@ -1,5 +1,5 @@
 {
     "scripts": {
-        "python-server": "cd server && python3 app.py"
+        "python-server": "pip3 install -r requirements.txt && cd server && python3 app.py"
     }
 }
