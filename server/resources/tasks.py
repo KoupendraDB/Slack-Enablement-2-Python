@@ -20,6 +20,8 @@ class Tasks(Resource):
         query = {}
         request_query_dict = request_query.to_dict()
         for field in fields:
+            if request_query_dict.get(field, False):
+                query[field] = request_query_dict.get(field)
             for comparator in comparators:
                 param = field + '_' + comparator
                 value = request_query_dict.get(param)
