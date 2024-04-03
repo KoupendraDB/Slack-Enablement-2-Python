@@ -44,6 +44,9 @@ class Task(Resource):
         task['last_modified_at'] = task['created_at'] = datetime.now()
         task['title'] = task_request['title']
         task['status'] = task_request['status'] if 'status' in task_request else 'Ready'
+        task['description'] = task_request['description']
+        if 'description_type' in task_request:
+           task['description_type'] = task_request['description_type']
         if 'eta_done' in task_request:
             task['eta_done'] = datetime.fromisoformat(task_request['eta_done'])
         assignee = self.user_resource.fetch_user_by_username(task_request['assignee'])
