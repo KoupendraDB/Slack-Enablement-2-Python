@@ -16,7 +16,7 @@ class Tasks(Resource):
 
     def make_query(self, request_query):
         comparators = ['$eq', '$gt', '$gte', '$lt', '$lte', '$ne', '$in', '$nin', '$regex']
-        fields = ['_id', 'created_by', 'assignee', 'last_modified_by', 'title', 'status', 'created_at', 'last_modified_at', 'eta_done']
+        fields = ['_id', 'created_by', 'assignee', 'last_modified_by', 'title', 'status', 'created_at', 'last_modified_at', 'eta_done', 'project']
         query = {}
         request_query_dict = request_query.to_dict()
         for field in fields:
