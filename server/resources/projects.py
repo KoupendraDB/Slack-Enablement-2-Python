@@ -13,7 +13,7 @@ class Projects(Resource):
             'users': {'unmask': lambda users: list(map(lambda x: str(x), users)), 'mask': lambda users: list(map(lambda x: ObjectId(x), users))}
         }
         self.project_database = mongo_client[database].project
-        self.project_cache_controller = RedisCacheController(redis_client, self.cache_masker, self.cache_time)
+        self.project_cache_controller = RedisCacheController(redis_client, self.project_masker, self.cache_time)
 
     def fetch_user_projects(self, user):
         projects = self.project_database.find({'users': {'$elemMatch': {'$eq': user['_id']}}}, {'users': 0})
