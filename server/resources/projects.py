@@ -1,4 +1,4 @@
-from flask_restful import Resource, request
+from flask_restful import Resource
 from datetime import timedelta
 from bson.objectid import ObjectId
 from .helpers.middlewares import token_required
@@ -19,9 +19,9 @@ class Projects(Resource):
         cached_data = self.project_cache_controller.get_cache('user:{}:projects', user['_id'])
         if cached_data:
             return cached_data
-        projects = self.project_database.find({'users': {'$elemMatch': {'$eq': user['_id']}}}, {'users': 0})
+        projects = self.project_database.find({'users': {'$elemMatch': {'$eq': user['_id']}}}, {'users': 0}) or []
         self.project_cache_controller.set_cache('user:{}:projects', user['_id'], projects)
-        return projects if projects else []
+        return []
 
     @token_required
     def get(self, user):
