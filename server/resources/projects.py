@@ -19,9 +19,10 @@ class Projects(Resource):
         cached_data = self.project_cache_controller.get_cache('user:{}:projects', user['_id'])
         if cached_data:
             return cached_data
-        projects = self.project_database.find({'users': {'$elemMatch': {'$eq': user['_id']}}}, {'users': 0}) or []
+        projects = self.project_database.find({'users': {'$elemMatch': {'$eq': user['_id']}}}, {'users': 0})
+        projects = projects if projects else []
         self.project_cache_controller.set_cache('user:{}:projects', user['_id'], projects)
-        return []
+        return projects
 
     @token_required
     def get(self, user):
