@@ -23,6 +23,9 @@ def create_app():
     from resources.task import Task
     api.add_resource(Task, '/task', '/task/<string:task_id>', endpoint = 'task')
 
+    from resources.projects import Projects
+    api.add_resource(Projects, '/projects', endpoint = 'project')
+
     from resources.tasks import Tasks
     api.add_resource(Tasks, '/tasks', endpoint = 'tasks')
 

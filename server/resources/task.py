@@ -35,24 +35,14 @@ class Task(Resource):
         return self.fetch_task(key_template, task_id, query, options)
 
     def create_task(self, task_request, creator):
-        task = {}
-        mandatory_fields = ['assignee', 'title']
-        for key in mandatory_fields:
-            if key not in task_request:
-                return False
-        task['last_modified_by'] = task['created_by'] = creator['username']
-        task['last_modified_at'] = task['created_at'] = datetime.now()
-        task['title'] = task_request['title']
-        task['status'] = task_request['status'] if 'status' in task_request else 'Ready'
-        task['description'] = task_request['description']
-        if 'description_type' in task_request:
-           task['description_type'] = task_request['description_type']
-        if 'eta_done' in task_request:
-            task['eta_done'] = datetime.fromisoformat(task_request['eta_done'])
+        task_request['last_modified_by'] = task_request['created_by'] = creator['username']
+        task_request['last_modified_at'] = task_request['created_at'] = datetime.now()
+        task_request['status'] = task_request['status'] if 'status' in task_request else 'Ready'
+        task_request['eta_done'] = datetime.fromisoformat(task_request['eta_done'])
         assignee = self.user_resource.fetch_user_by_username(task_request['assignee'])
         if assignee:
-            task['assignee'] = assignee['username']
-            return task
+            task_request['assignee'] = assignee['username']
+            return task_request
         return None
 
     def modify_task(self, task_request, user):
