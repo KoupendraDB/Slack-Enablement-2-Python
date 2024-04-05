@@ -20,7 +20,7 @@ class Projects(Resource):
         if cached_data:
             return cached_data
         projects = self.project_database.find({'users': {'$elemMatch': {'$eq': user['_id']}}}, {'users': 0})
-        projects = projects if projects else []
+        projects = [project for project in projects]
         self.project_cache_controller.set_cache('user:{}:projects', user['_id'], projects)
         return projects
 
