@@ -16,7 +16,11 @@ class Projects(Resource):
         self.project_cache_controller = RedisCacheController(redis_client, self.project_masker, self.cache_time)
 
     def fetch_user_projects(self, user):
+        cached_data = self.project_cache_controller.get_cache('user:{}:projects', user['_id'])
+        if cached_data:
+            return cached_data
         projects = self.project_database.find({'users': {'$elemMatch': {'$eq': user['_id']}}}, {'users': 0})
+        self.project_cache_controller.set_cache('user:{}:projects', user['_id'], projects)
         return projects if projects else []
 
     @token_required
