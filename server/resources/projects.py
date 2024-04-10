@@ -9,8 +9,7 @@ class Projects(Resource):
     def __init__(self):
         self.cache_time = timedelta(minutes = 30)
         self.project_masker = {
-            '_id': {'unmask': str, 'mask': ObjectId},
-            'users': {'unmask': lambda users: list(map(lambda x: str(x), users)), 'mask': lambda users: list(map(lambda x: ObjectId(x), users))}
+            '_id': {'unmask': str, 'mask': ObjectId}
         }
         self.project_database = mongo_client[database].project
         self.project_cache_controller = RedisCacheController(redis_client, self.project_masker, self.cache_time)
@@ -19,14 +18,11 @@ class Projects(Resource):
         cached_data = self.project_cache_controller.get_cache('user:{}:projects', str(user['_id']))
         if cached_data:
             return cached_data
-        projects = self.project_database.find(
-            {'$or': [
+        projects = self.project_database.find({'$or': [
                 {'project_manager': user['_id']},
                 {'developers': {'$elemMatch': {'$eq': user['_id']}}},
                 {'qas': {'$elemMatch': {'$eq': user['_id']}}}
-            ]},
-            {'users': 0}
-        )
+        ]})
         projects = [project for project in projects]
         self.project_cache_controller.set_cache('user:{}:projects', user['_id'], projects)
         return projects
