@@ -1,4 +1,4 @@
-from flask_restful import Resource
+from flask_restful import Resource, request
 from datetime import timedelta
 from bson.objectid import ObjectId
 from .helpers.middlewares import token_required
@@ -32,5 +32,15 @@ class Projects(Resource):
             'projects': [unmask_fields(project, self.project_masker) for project in project]
             }, 200
 
+    @token_required
+    def post(self, user):
+        project_request = request.get_json()
+        insert_result = self.project_database.insert_one(project_request)
+        if insert_result and insert_result.inserted_id:
+            self.project_cache_controller.delete_cache('user:{}:projects', user['_id'])
+            result = {'success': True, 'project_id': str(insert_result.inserted_id)}, 201
+            return result
+        return {'success': False}, 400
+        
 
 from app import mongo_client, database, redis_client
