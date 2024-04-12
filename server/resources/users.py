@@ -19,7 +19,7 @@ class Users(Resource):
         users = self.fetch_users(request.args.to_dict())
         return {
             'success': True,
-            'tasks': [unmask_fields(user, self.user_masker) for user in users]
+            'users': [unmask_fields(user, self.user_masker) for user in users]
             }, 200
 
 
