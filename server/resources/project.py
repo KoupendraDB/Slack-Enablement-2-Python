@@ -24,7 +24,7 @@ class Project(Resource):
         return project
 
     @token_required
-    def get(self, project_id):
+    def get(self, project_id, user):
         project = self.fetch_project(project_id)
         if project:
             return {
