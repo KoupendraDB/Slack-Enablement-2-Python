@@ -15,7 +15,7 @@ class Projects(Resource):
         self.project_cache_controller = RedisCacheController(redis_client, self.project_masker, self.cache_time)
 
     def fetch_user_projects(self, user_id):
-        cached_data = self.project_cache_controller.get_cache('user:{}:projects', str(user_id))
+        cached_data = self.project_cache_controller.get_cache('user:{}:projects', user_id)
         if cached_data:
             return cached_data
         projects = self.project_database.find({'$or': [
@@ -27,9 +27,6 @@ class Projects(Resource):
         self.project_cache_controller.set_cache('user:{}:projects', user_id, projects)
         return projects
 
-    def fetch_project(self, project_id):
-        return self.project_database.find_one({'_id': ObjectId(project_id)})
-
     @token_required
     def get(self, user_id, user):
         projects = self.fetch_user_projects(user_id)
@@ -37,29 +34,5 @@ class Projects(Resource):
             'success': True,
             'projects': [unmask_fields(project, self.project_masker) for project in projects]
         }, 200
-
-    def get(self, project_id):
-        project = self.fetch_project(project_id)
-        if project:
-            return {
-                'success': True,
-                'project': unmask_fields(project, self.project_masker)
-            }, 200
-        return {
-            'success': False,
-        }, 404
-
-    @token_required
-    def post(self, user):
-        project_request = request.get_json()
-        insert_result = self.project_database.insert_one(project_request)
-        if insert_result and insert_result.inserted_id:
-            users = project_request['developers'] + project_request['qas'] + [project_request['project_manager'], project_request['admin']]
-            for user_id in users:
-                self.project_cache_controller.delete_cache('user:{}:projects', user_id)
-            result = {'success': True, 'project_id': str(insert_result.inserted_id)}, 201
-            return result
-        return {'success': False}, 400
-        
 
 from app import mongo_client, database, redis_client

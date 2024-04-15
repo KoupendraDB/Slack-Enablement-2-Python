@@ -30,7 +30,10 @@ def create_app():
     api.add_resource(Tasks, '/tasks', endpoint = 'tasks')
 
     from resources.projects import Projects
-    api.add_resource(Projects, '/projects', '/<string:user_id>/projects', '/project/<string:project_id>', endpoint = 'project')
+    api.add_resource(Projects, '<string:user_id>/projects/', endpoint = 'projects')
+
+    from resources.project import Project
+    api.add_resource(Project, '/project', '/project/<string:project_id>', endpoint = 'project')
 
     @app.route('/login', methods = ['POST'])
     def login():
