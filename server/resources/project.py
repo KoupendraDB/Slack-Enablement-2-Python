@@ -47,4 +47,13 @@ class Project(Resource):
             return result
         return {'success': False}, 400
 
+    @token_required
+    def patch(self, project_id, user):
+        project_update_request = request.get_json()
+        update_result = self.project_database.update_one({'_id': ObjectId(project_id)}, {'$set': project_update_request})
+        if update_result and update_result.modified_count:
+            self.project_cache_controller.delete_cache('project:{}', project_id)
+            return {'success': True}, 200
+        return {'success': False}, 400
+
 from app import mongo_client, database, redis_client
