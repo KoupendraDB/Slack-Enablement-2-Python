@@ -1,7 +1,7 @@
 from flask_restful import Resource, request
 from datetime import datetime, date
 from bson.objectid import ObjectId
-from .helpers.masker import unmask_fields
+from .helpers.masker import unmask_fields, mask_fields
 
 class Users(Resource):
     def __init__(self):
@@ -11,7 +11,8 @@ class Users(Resource):
         self.user_database = mongo_client[database].user
 
     def fetch_users(self, request_query):
-        users = self.user_database.find(request_query)
+        query = mask_fields(request_query, self.user_masker)
+        users = self.user_database.find(query)
         return users if users else []
 
     def get(self):
