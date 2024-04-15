@@ -11,7 +11,9 @@ class Users(Resource):
         self.user_database = mongo_client[database].user
 
     def fetch_users(self, request_query):
-        query = {'role': request_query.get('role', ''), 'name': {'$regex': request_query.get('name', '')}}
+        query = {'name': {'$regex': request_query.get('name', '')}}
+        if request_query.get('role', None):
+            query['role'] = request_query['role']
         users = self.user_database.find(query)
         return users if users else []
 
