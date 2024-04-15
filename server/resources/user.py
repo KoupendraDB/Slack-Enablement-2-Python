@@ -44,7 +44,7 @@ class User(Resource):
                 is_correct_password = user['password'] == password
             if is_correct_password:
                 token = encode_user(str(user['_id']))
-                return token
+                return token, user['role']
         return None
 
 

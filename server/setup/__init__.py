@@ -35,9 +35,9 @@ def create_app():
     @app.route('/login', methods = ['POST'])
     def login():
         body = request.get_json()
-        access_token = User.get_access_token(body['username'], body['password'])
+        access_token, role = User.get_access_token(body['username'], body['password'])
         if access_token:
-            return {'success': True, 'access_token': access_token}, 200
+            return {'success': True, 'access_token': access_token, 'role': role}, 200
         return {'success': False}, 404
     
     return app
