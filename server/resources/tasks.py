@@ -28,6 +28,8 @@ class Tasks(Resource):
                 if value != None:
                     if comparator in ['$in', '$nin']:
                         value = value.split(',')
+                    elif comparator == '$exists':
+                        value = not (value == 'False')
                     if field in self.task_masker:
                         if comparator in ['$in', '$nin']:
                             value = [self.task_masker[field]['mask'](val) for val in value]
