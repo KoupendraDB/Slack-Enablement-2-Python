@@ -15,7 +15,7 @@ class Tasks(Resource):
         self.task_database = mongo_client[database].task
 
     def make_query(self, request_query):
-        comparators = ['$eq', '$gt', '$gte', '$lt', '$lte', '$ne', '$in', '$nin', '$regex']
+        comparators = ['$eq', '$gt', '$gte', '$lt', '$lte', '$ne', '$in', '$nin', '$regex', '$exists']
         fields = ['_id', 'created_by', 'assignee', 'last_modified_by', 'title', 'status', 'created_at', 'last_modified_at', 'eta_done', 'project']
         query = {}
         request_query_dict = request_query.to_dict()
