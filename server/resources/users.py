@@ -12,8 +12,6 @@ class Users(Resource):
 
     def fetch_users(self, request_query):
         query = mask_fields(request_query, self.user_masker)
-        print(request_query)
-        print(query)
         users = self.user_database.find(query)
         return users if users else []
 
