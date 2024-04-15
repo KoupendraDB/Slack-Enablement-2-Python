@@ -36,9 +36,6 @@ class Tasks(Resource):
                     if field not in query:
                         query[field] = {}
                     query[field][comparator] = value
-        print(request_query)
-        print('='*20)
-        print(query)
         return query
 
     def fetch_tasks(self, request_query):
