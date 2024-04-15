@@ -24,8 +24,8 @@ class Tasks(Resource):
                 query[field] = request_query_dict.get(field)
             for comparator in comparators:
                 param = field + '_' + comparator
-                value = request_query_dict.get(param)
-                if value:
+                value = request_query_dict.get(param, None)
+                if value != None:
                     if comparator in ['$in', '$nin']:
                         value = value.split(',')
                     if field in self.task_masker:
