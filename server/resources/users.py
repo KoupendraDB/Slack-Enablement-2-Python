@@ -15,7 +15,7 @@ class Users(Resource):
         return users if users else []
 
     def get(self):
-        users = self.fetch_users(request.args.to_dict())
+        users = self.fetch_users(request.get_json())
         return {
             'success': True,
             'users': [unmask_fields(user, self.user_masker) for user in users]
