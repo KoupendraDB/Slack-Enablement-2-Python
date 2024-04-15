@@ -27,13 +27,27 @@ class Projects(Resource):
         self.project_cache_controller.set_cache('user:{}:projects', user_id, projects)
         return projects
 
+    def fetch_project(self, project_id):
+        return self.project_database.find_one({'_id': ObjectId(project_id)})
+
     @token_required
     def get(self, user_id, user):
-        project = self.fetch_user_projects(user_id)
+        projects = self.fetch_user_projects(user_id)
         return {
             'success': True,
-            'projects': [unmask_fields(project, self.project_masker) for project in project]
+            'projects': [unmask_fields(project, self.project_masker) for project in projects]
+        }, 200
+
+    def get(self, project_id):
+        project = self.fetch_project(project_id)
+        if project:
+            return {
+                'success': True,
+                'project': unmask_fields(project, self.project_masker)
             }, 200
+        return {
+            'success': False,
+        }, 404
 
     @token_required
     def post(self, user):
