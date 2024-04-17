@@ -1,7 +1,6 @@
 from flask_restful import Resource, request
 from datetime import timedelta
 from bson.objectid import ObjectId
-from .helpers.middlewares import token_required
 from .helpers.masker import unmask_fields
 
 class Projects(Resource):
@@ -12,15 +11,14 @@ class Projects(Resource):
         }
         self.project_database = mongo_client[database].project
 
-    def fetch_user_projects(self, query = {}, options = {}):
+    def fetch_projects(self, query = {}, options = {}):
         projects = self.project_database.find(query, options)
         projects = [project for project in projects]
         return projects
 
-    @token_required
-    def get(self, user):
+    def get(self):
         body = request.get_json()
-        projects = self.fetch_user_projects(body.get('query', {}), body.get('options', {}))
+        projects = self.fetch_projects(body.get('query', {}), body.get('options', {}))
         return {
             'success': True,
             'projects': [unmask_fields(project, self.project_masker) for project in projects]
