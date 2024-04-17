@@ -94,7 +94,8 @@ class Task(Resource):
             update_result = self.task_database.update_one({'_id': ObjectId(task_id)}, {'$set': modified_task})
             if update_result and update_result.modified_count:
                 self.task_cache_controller.delete_cache('task_id:{}', task_id)
-                result = {'success': True}, 200
+                task = self.fetch_task_by_id(task_id)
+                result = {'success': True, 'task': unmask_fields(task, self.cache_masker)}, 200
                 return result
             return {'success': False}, 400
         return {'success': False, 'message': 'Invalid data'}, 400

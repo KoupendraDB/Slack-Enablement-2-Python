@@ -40,9 +40,6 @@ class Project(Resource):
         project_request = request.get_json()
         insert_result = self.project_database.insert_one(project_request)
         if insert_result and insert_result.inserted_id:
-            users = project_request['developers'] + project_request['qas'] + [project_request['project_manager'], project_request['admin']]
-            for user_id in users:
-                self.project_cache_controller.delete_cache('user:{}:projects', user_id)
             result = {'success': True, 'project_id': str(insert_result.inserted_id)}, 201
             return result
         return {'success': False}, 400
@@ -53,7 +50,8 @@ class Project(Resource):
         update_result = self.project_database.update_one({'_id': ObjectId(project_id)}, project_update_request)
         if update_result and update_result.modified_count:
             self.project_cache_controller.delete_cache('project:{}', project_id)
-            return {'success': True}, 200
+            project = self.fetch_project(project_id)
+            return {'success': True, 'project': project}, 200
         return {'success': False}, 400
 
 from app import mongo_client, database, redis_client
