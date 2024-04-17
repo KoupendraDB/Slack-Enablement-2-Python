@@ -12,7 +12,7 @@ class Users(Resource):
 
     def fetch_users(self, request_query):
         query = mask_fields(request_query, self.user_masker)
-        users = self.user_database.find(query)
+        users = self.user_database.find(query, {'_id': 0, 'password': 0})
         return users if users else []
 
     def get(self):
