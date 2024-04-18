@@ -20,18 +20,27 @@ def create_app():
     from resources.user import User
     api.add_resource(User, '/user', '/user/<string:user_id>', endpoint = 'user')
 
+    from resources.users import Users
+    api.add_resource(Users, '/users', endpoint = 'users')
+
     from resources.task import Task
     api.add_resource(Task, '/task', '/task/<string:task_id>', endpoint = 'task')
 
     from resources.tasks import Tasks
     api.add_resource(Tasks, '/tasks', endpoint = 'tasks')
 
+    from resources.projects import Projects
+    api.add_resource(Projects, '/projects', endpoint = 'projects')
+
+    from resources.project import Project
+    api.add_resource(Project, '/project', '/project/<string:project_id>', endpoint = 'project')
+
     @app.route('/login', methods = ['POST'])
     def login():
         body = request.get_json()
-        access_token = User.get_access_token(body['username'], body['password'])
+        access_token, role = User.get_access_token(body['username'], body['password'])
         if access_token:
-            return {'success': True, 'access_token': access_token}, 200
+            return {'success': True, 'access_token': access_token, 'role': role}, 200
         return {'success': False}, 404
-
+    
     return app

@@ -15,8 +15,8 @@ class Tasks(Resource):
         self.task_database = mongo_client[database].task
 
     def make_query(self, request_query):
-        comparators = ['$eq', '$gt', '$gte', '$lt', '$lte', '$ne', '$in', '$nin', '$regex']
-        fields = ['_id', 'created_by', 'assignee', 'last_modified_by', 'title', 'status', 'created_at', 'last_modified_at', 'eta_done']
+        comparators = ['$eq', '$gt', '$gte', '$lt', '$lte', '$ne', '$in', '$nin', '$regex', '$exists']
+        fields = ['_id', 'created_by', 'assignee', 'last_modified_by', 'title', 'status', 'created_at', 'last_modified_at', 'eta_done', 'project']
         query = {}
         request_query_dict = request_query.to_dict()
         for field in fields:
@@ -24,10 +24,12 @@ class Tasks(Resource):
                 query[field] = request_query_dict.get(field)
             for comparator in comparators:
                 param = field + '_' + comparator
-                value = request_query_dict.get(param)
-                if value:
+                value = request_query_dict.get(param, None)
+                if value != None:
                     if comparator in ['$in', '$nin']:
                         value = value.split(',')
+                    elif comparator == '$exists':
+                        value = not (value == 'False')
                     if field in self.task_masker:
                         if comparator in ['$in', '$nin']:
                             value = [self.task_masker[field]['mask'](val) for val in value]
