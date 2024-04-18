@@ -8,7 +8,13 @@ from app import redis_client, mongo_client, database
 
 cache_time = timedelta(hours = 1)
 
-cache_masker = {'_id': {'unmask': str, 'mask': ObjectId}}
+cache_masker = {
+    '_id': {'unmask': str, 'mask': ObjectId},
+    'projects': {
+        'unmask': lambda y: list(map(lambda x: str(x), y)),
+        'mask': lambda y: list(map(lambda x: ObjectId(x), y))
+    }
+}
 
 token_cache_controller = RedisCacheController(redis_client, cache_masker, cache_time)
 
