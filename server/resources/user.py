@@ -8,7 +8,13 @@ from .helpers.token import encode_user
 class User(Resource):
     def __init__(self):
         self.cache_time = timedelta(minutes = 1)
-        self.cache_masker = {'_id': {'unmask': str, 'mask': ObjectId}}
+        self.cache_masker = {
+            '_id': {'unmask': str, 'mask': ObjectId},
+            'projects': {
+                'unmask': lambda y: list(map(lambda x: str(x), y)),
+                'mask': lambda y: list(map(lambda x: ObjectId(x), y))
+            }
+        }
         self.user_cache_controller = RedisCacheController(redis_client, self.cache_masker, self.cache_time)
         self.user_database = mongo_client[database].user
 

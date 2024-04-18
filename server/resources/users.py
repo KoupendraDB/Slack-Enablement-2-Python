@@ -1,12 +1,15 @@
 from flask_restful import Resource, request
-from datetime import datetime, date
 from bson.objectid import ObjectId
 from .helpers.masker import unmask_fields, mask_fields
 
 class Users(Resource):
     def __init__(self):
         self.user_masker = {
-            '_id': {'unmask': str, 'mask': ObjectId}
+            '_id': {'unmask': str, 'mask': ObjectId},
+            'projects': {
+                'unmask': lambda y: list(map(lambda x: str(x), y)),
+                'mask': lambda y: list(map(lambda x: ObjectId(x), y))
+            }
         }
         self.user_database = mongo_client[database].user
 
@@ -20,7 +23,7 @@ class Users(Resource):
         return {
             'success': True,
             'users': [unmask_fields(user, self.user_masker) for user in users]
-            }, 200
+        }, 200
 
 
 from app import mongo_client, database
