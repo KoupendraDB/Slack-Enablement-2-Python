@@ -17,3 +17,5 @@ class RedisManager():
     )
     self.redis_client.ping()
     print("[+] Successfully connected to Redis!")
+
+redis_client = RedisManager().redis_client

@@ -17,3 +17,5 @@ class MongoManager():
 		self.mongo_client = MongoClient(mongo_uri, tlsCAFile = certifi.where())
 		self.mongo_client[database].command('ping')
 		print("[+] Successfully connected to MongoDB!")
+
+mongo_client = MongoManager().mongo_client
