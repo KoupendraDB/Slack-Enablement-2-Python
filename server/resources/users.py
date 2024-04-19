@@ -1,28 +1,33 @@
-from flask_restful import Resource, request
-from bson.objectid import ObjectId
-from .helpers.masker import unmask_fields
+from flask import Blueprint, request
+from resources.helpers.masker import unmask_fields
+from resources.helpers.masks import user_masker
+from connections.mongo import mongo_client
+from app import database
 
-class Users(Resource):
-    def __init__(self):
-        self.user_masker = {
-            '_id': {'unmask': str, 'mask': ObjectId},
+users_blueprint = Blueprint('users', __name__, url_prefix='/users')
+
+project_database = mongo_client[database].project
+user_database = mongo_client[database].user
+
+@users_blueprint.get('/available/<string:role>')
+def get_available_users(role):
+    querystring = request.args.to_dict()
+    name = querystring.get('name', '')
+    max_projects = querystring.get('max_projects', 1)
+    users = unmask_fields(list(user_database.find(
+        {
+            'role': role,
+            'name': {
+                '$regex': name
+            },
             'projects': {
-                'unmask': lambda y: list(map(lambda x: str(x), y)),
-                'mask': lambda y: list(map(lambda x: ObjectId(x), y))
+                '$lt': {
+                    '$size': max_projects
+                }
             }
         }
-        self.user_database = mongo_client[database].user
-
-    def fetch_users(self, request_query):
-        users = self.user_database.find(request_query, {'_id': 0, 'password': 0})
-        return users if users else []
-
-    def get(self):
-        users = self.fetch_users(request.get_json())
-        return {
-            'success': True,
-            'users': [unmask_fields(user, self.user_masker) for user in users]
-        }, 200
-
-
-from app import mongo_client, database
+    )), user_masker)
+    return {
+        'success': True,
+        'users': users
+    }, 200

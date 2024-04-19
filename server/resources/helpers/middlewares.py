@@ -4,19 +4,14 @@ from datetime import timedelta
 from bson.objectid import ObjectId
 from .token import *
 from .cache import RedisCacheController
-from app import redis_client, mongo_client, database
+from app import database
+from resources.helpers.masks import user_masker
+from connections.mongo import mongo_client
+from connections.redis import redis_client
 
 cache_time = timedelta(hours = 1)
 
-cache_masker = {
-    '_id': {'unmask': str, 'mask': ObjectId},
-    'projects': {
-        'unmask': lambda y: list(map(lambda x: str(x), y)),
-        'mask': lambda y: list(map(lambda x: ObjectId(x), y))
-    }
-}
-
-token_cache_controller = RedisCacheController(redis_client, cache_masker, cache_time)
+token_cache_controller = RedisCacheController(redis_client, user_masker, cache_time)
 
 user_database = mongo_client[database].user
 

@@ -1,67 +1,204 @@
-from flask_restful import Resource, request
+from flask import Blueprint, request
 from datetime import timedelta
 from bson.objectid import ObjectId
-from .helpers.middlewares import token_required
-from .helpers.cache import RedisCacheController
-from .helpers.masker import unmask_fields
+from resources.helpers.middlewares import token_required
+from resources.helpers.cache import RedisCacheController
+from resources.helpers.masker import unmask_fields
+from resources.helpers.masks import project_masker, user_masker
+from connections.mongo import mongo_client
+from connections.redis import redis_client
+from app import database
 
-class Project(Resource):
-    def __init__(self):
-        self.cache_time = timedelta(minutes = 30)
-        self.project_masker = {
-            '_id': {'unmask': str, 'mask': ObjectId}
+project_blueprint = Blueprint('project', __name__, url_prefix='/project')
+
+cache_time = timedelta(minutes = 30)
+
+project_database = mongo_client[database].project
+user_database = mongo_client[database].user
+project_cache_controller = RedisCacheController(redis_client, project_masker, cache_time)
+
+def fetch_project(key_template = None, key = None, query = {}, options = {}):
+    if key_template:
+        cached_response = project_cache_controller.get_cache(key_template, key)
+        if cached_response:
+            return cached_response
+    project = project_database.find_one(query, options)
+    if project and key_template:
+        project_cache_controller.set_cache(key_template, key, project)
+    return unmask_fields(project, project_masker) if project else None
+
+def fetch_project_by_id(project_id):
+    key_template = 'project:id:{}'
+    query = {'_id': ObjectId(project_id)}
+    return fetch_project(key_template, project_id, query)
+
+def fetch_project_by_channel_id(channel_id):
+    key_template = 'project:channel_id:{}'
+    query = {'channel_id': channel_id}
+    return fetch_project(key_template, channel_id, query)
+
+
+@project_blueprint.get('/<string:project_id>')
+@token_required
+def get_project(project_id, user):
+    project = fetch_project_by_id(project_id)
+    if project:
+        return {
+            'success': True,
+            'project': project
+        }, 200
+    return {
+        'success': False,
+    }, 404
+
+
+@project_blueprint.post('/')
+@token_required
+def post_project(user):
+    project_request = request.get_json()
+    insert_result = project_database.insert_one(project_request)
+    if insert_result and insert_result.inserted_id:
+        result = {'success': True, 'project_id': str(insert_result.inserted_id)}, 201
+        return result
+    return {'success': False}, 400
+
+
+@project_blueprint.get('/channel/<string:channel_id>')
+def get_project_by_channel_id(channel_id):
+    project = fetch_project_by_channel_id(channel_id)
+    if project:
+        return {
+            'success': True,
+            'project': project
+        }, 200
+    return {
+        'success': False,
+    }, 404
+
+
+@project_blueprint.post('/accept-invite/<string:invitation_code>')
+@token_required
+def accept_project_invite(invitation_code, user):
+    username = user['username']
+    project = project_database.find_one({
+        f'invitations.{username}': {
+            '$exists': True,
+            '$eq': invitation_code
         }
-        self.project_database = mongo_client[database].project
-        self.user_database = mongo_client[database].user
-        self.project_cache_controller = RedisCacheController(redis_client, self.project_masker, self.cache_time)
+    })
 
-    def fetch_project(self, project_id):
-        cached_data = self.project_cache_controller.get_cache('project:{}', project_id)
-        if cached_data:
-            return cached_data
-        project = self.project_database.find_one({'_id': ObjectId(project_id)}, {'_id': 0})
-        if project:
-            self.project_cache_controller.set_cache('project:{}', project_id, project)
-        return project
+    if not project:
+        return {'success': False, 'message': 'Invalid code!'}, 404
 
-    def update_users_project(self, project_id, project):
-        project_members = project['qas'] + project['developers'] + [project['admin'], project['project_manager']]
-        self.user_database.update_many({'username': {'$in': project_members}}, {'$addToSet': {'projects': project_id}})
-        key_template = 'username:{}'
-        for member in project_members:
-            self.project_cache_controller.delete_cache(key_template, member)
+    updated_user = unmask_fields(user_database.find_one_and_update(
+        {
+            '_id': user['_id']
+        },
+        {
+            '$addToSet': {
+                'projects': project['_id']
+            }
+        }
+    ), user_masker)
 
-    @token_required
-    def get(self, project_id, user):
-        project = self.fetch_project(project_id)
-        if project:
-            return {
-                'success': True,
-                'project': project
-            }, 200
+    updated_project = unmask_fields(project_database.find_one_and_update(
+        {
+            '_id': project['_id']
+        },
+        {
+            '$unset': {
+                f'invitations.{username}': 1
+            }
+        }
+    ), project_masker)
+    
+    if updated_project:
+        project_cache_controller.delete_cache('project:id:{}', updated_project['_id'])
+        project_cache_controller.delete_cache('project:channel_id:{}', updated_project['channel_id'])
+        project_cache_controller.delete_cache('user:username:{}', username)
+        project_cache_controller.delete_cache('token_user_id:{}', updated_user['_id'])
+        return {'success': True, 'project': updated_project}, 200
+    return {'success': False, 'message': 'Unknown error!'}, 400
+
+
+@project_blueprint.post('<string:project_id>/create-invite/<string:invitee_username>')
+@token_required
+def create_project_invite(project_id, invitee_username, user):
+    project = project_database.find_one({
+        '_id': ObjectId(project_id)
+    })
+
+    if not project:
+        return {'success': False, 'message': 'Project does not exist!'}, 404
+    
+    if project.get('invitations', invitee_username):
         return {
             'success': False,
-        }, 404
+            'message': 'Invitation already sent!'
+        }, 409
+    
+    invitation_code = '123'
+    updated_project = unmask_fields(project_database.find_one_and_update(
+        {
+            '_id': project['_id']
+        },
+        {
+            '$set': {
+                f'invitations.{invitee_username}': invitation_code
+            }
+        }
+    ), project_masker)
+    
+    if updated_project:
+        project_cache_controller.delete_cache('project:id:{}', updated_project['_id'])
+        project_cache_controller.delete_cache('project:channel_id:{}', updated_project['channel_id'])
+        return {
+            'success': True,
+            'invitation_code': invitation_code
+        }, 200
 
-    @token_required
-    def post(self, user):
-        project_request = request.get_json()
-        insert_result = self.project_database.insert_one(project_request)
-        if insert_result and insert_result.inserted_id:
-            self.update_users_project(insert_result.inserted_id, project_request)
-            result = {'success': True, 'project_id': str(insert_result.inserted_id)}, 201
-            return result
-        return {'success': False}, 400
+    return {'success': False, 'message': 'Unknown error!'}, 400
 
-    @token_required
-    def patch(self, project_id, user):
-        project_update_request = request.get_json()
-        update_result = self.project_database.update_one({'_id': ObjectId(project_id)}, project_update_request)
-        if update_result and update_result.modified_count:
-            self.project_cache_controller.delete_cache('project:{}', project_id)
-            project = self.fetch_project(project_id)
-            self.update_users_project(ObjectId(project_id), project)
-            return {'success': True, 'project': project}, 200
-        return {'success': False}, 400
 
-from app import mongo_client, database, redis_client
+@project_blueprint.post('<string:project_id>/roll-off-members')
+@token_required
+def roll_off_member(project_id, roll_off_username, user):
+    members = request.get_json().get('members', [])
+    updated_user = unmask_fields(user_database.find_one_and_update(
+        {
+            'username': {
+                '$in': members
+            }
+        },
+        {
+            '$pull': {
+                'projects': ObjectId(project_id)
+            }
+        }
+    ), user_masker)
+    
+    if updated_user:
+        project_cache_controller.delete_cache('user:username:{}', roll_off_username)
+        project_cache_controller.delete_cache('token_user_id:{}', updated_user['_id'])
+        return {'success': True}, 200
+    return {'success': False, 'message': 'Unknown error!'}, 400
+
+
+@project_blueprint.get('<string:project_id>/members')
+def get_project_members(project_id):
+    users = unmask_fields(list(user_database.find(
+        {
+            'projects': {
+                '$elemMatch': ObjectId(project_id)
+            }
+        },
+        {
+            '_id': 0,
+            'password': 0
+        }
+    )), user_masker)
+
+    return {
+        'success': True,
+        'members': users
+    }, 200

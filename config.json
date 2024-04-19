@@ -12,5 +12,5 @@
     },
     "server_port": 5000,
     "app_secret_key_variable": "app_secret_key",
-    "enable_password_hashing": false
+    "enable_password_hashing": true
 }
