@@ -40,7 +40,7 @@ def fetch_project_by_channel_id(channel_id):
 
 def generate_invitation_code():
     token=os.urandom(16)
-    return base64.b64encode(token)
+    return base64.b64encode(token).decode('ascii')
 
 
 @project_blueprint.get('/<string:project_id>')
@@ -143,9 +143,7 @@ def accept_project_invite(invitation_code, user):
 @token_required
 def create_project_invite(project_id, user):
     invitees = request.get_json().get('invitees')
-    project = project_database.find_one({
-        '_id': ObjectId(project_id)
-    })
+    project = fetch_project_by_id(project_id)
 
     if not project:
         return {'success': False, 'message': 'Project does not exist!'}, 404
