@@ -23,10 +23,10 @@ def fetch_project(key_template = None, key = None, query = {}, options = {}):
         cached_response = project_cache_controller.get_cache(key_template, key)
         if cached_response:
             return cached_response
-    project = project_database.find_one(query, options)
+    project = unmask_fields(project_database.find_one(query, options), project_masker)
     if project and key_template:
         project_cache_controller.set_cache(key_template, key, project)
-    return unmask_fields(project, project_masker) if project else None
+    return project
 
 def fetch_project_by_id(project_id):
     key_template = 'project:id:{}'

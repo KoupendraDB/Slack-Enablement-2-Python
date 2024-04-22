@@ -24,10 +24,10 @@ def fetch_user(key_template = None, key = None, query = {}, options = {}):
         cached_response = user_cache_controller.get_cache(key_template, key)
         if cached_response:
             return cached_response
-    user = user_database.find_one(query, options)
+    user = unmask_fields(user_database.find_one(query, options), user_masker)
     if user and key_template:
         user_cache_controller.set_cache(key_template, key, user)
-    return unmask_fields(user, user_masker) if user else None
+    return user
 
 def fetch_user_by_username(username, ignore_password = True, cached = True):
     key_template = None
