@@ -152,7 +152,7 @@ def create_project_invite(project_id, user):
     
     invitation_codes = {}
     for invitee in invitees:
-        if project.get('invitations', invitee):
+        if project.get('invitations', {}).get(invitee):
             return {
                 'success': False,
                 'message': 'Invitation already sent!'
