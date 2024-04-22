@@ -111,7 +111,7 @@ def get_user_project_tasks(project_id, user):
 
 @user_blueprint.get('/personal/tasks')
 @token_required
-def get_user_project_tasks(user):
+def get_user_personal_tasks(user):
     username = user['username']
     tasks = unmask_fields(list(task_database.find({
         'assignee': username,
