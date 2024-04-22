@@ -107,3 +107,19 @@ def get_user_project_tasks(project_id, user):
         'success': True,
         'tasks': tasks
     }, 200
+
+
+@user_blueprint.get('/personal/tasks')
+@token_required
+def get_user_project_tasks(user):
+    username = user['username']
+    tasks = unmask_fields(list(task_database.find({
+        'assignee': username,
+        'project': {
+            '$exists': False
+        }
+    })), task_masker)
+    return {
+        'success': True,
+        'tasks': tasks
+    }, 200

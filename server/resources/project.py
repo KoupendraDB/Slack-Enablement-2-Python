@@ -8,6 +8,7 @@ from resources.helpers.masks import project_masker, user_masker
 from connections.mongo import mongo_client
 from connections.redis import redis_client
 from app import database
+import os, base64
 
 project_blueprint = Blueprint('project', __name__, url_prefix='/project')
 
@@ -36,6 +37,10 @@ def fetch_project_by_channel_id(channel_id):
     key_template = 'project:channel_id:{}'
     query = {'channel_id': channel_id}
     return fetch_project(key_template, channel_id, query)
+
+def generate_invitation_code():
+    token=os.urandom(16)
+    return base64.b64encode(token)
 
 
 @project_blueprint.get('/<string:project_id>')
@@ -121,9 +126,10 @@ def accept_project_invite(invitation_code, user):
     return {'success': False, 'message': 'Unknown error!'}, 400
 
 
-@project_blueprint.post('<string:project_id>/create-invite/<string:invitee_username>')
+@project_blueprint.post('<string:project_id>/create-invite')
 @token_required
-def create_project_invite(project_id, invitee_username, user):
+def create_project_invite(project_id, user):
+    invitees = request.get_json().get('invitees')
     project = project_database.find_one({
         '_id': ObjectId(project_id)
     })
@@ -131,21 +137,21 @@ def create_project_invite(project_id, invitee_username, user):
     if not project:
         return {'success': False, 'message': 'Project does not exist!'}, 404
     
-    if project.get('invitations', invitee_username):
-        return {
-            'success': False,
-            'message': 'Invitation already sent!'
-        }, 409
+    invitation_codes = {}
+    for invitee in invitees:
+        if project.get('invitations', invitee):
+            return {
+                'success': False,
+                'message': 'Invitation already sent!'
+            }, 409
+        invitation_codes[f'invitations.{invitee}'] = generate_invitation_code()
     
-    invitation_code = '123'
     updated_project = unmask_fields(project_database.find_one_and_update(
         {
             '_id': project['_id']
         },
         {
-            '$set': {
-                f'invitations.{invitee_username}': invitation_code
-            }
+            '$set': invitation_codes
         }
     ), project_masker)
     
@@ -154,7 +160,7 @@ def create_project_invite(project_id, invitee_username, user):
         project_cache_controller.delete_cache('project:channel_id:{}', updated_project['channel_id'])
         return {
             'success': True,
-            'invitation_code': invitation_code
+            'invitation_codes': invitation_codes
         }, 200
 
     return {'success': False, 'message': 'Unknown error!'}, 400
