@@ -39,7 +39,7 @@ def fetch_project_by_channel_id(channel_id):
     return fetch_project(key_template, channel_id, query)
 
 def generate_invitation_code():
-    token=os.urandom(16)
+    token=os.urandom(8)
     return base64.b64encode(token).decode('ascii')
 
 
