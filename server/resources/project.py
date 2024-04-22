@@ -23,7 +23,7 @@ def fetch_project(key_template = None, key = None, query = {}, options = {}):
         cached_response = project_cache_controller.get_cache(key_template, key)
         if cached_response:
             return cached_response
-    project = unmask_fields(project_database.find_one(query, options), project_masker)
+    project = project_database.find_one(query, options)
     if project and key_template:
         project_cache_controller.set_cache(key_template, key, project)
     return project
@@ -50,7 +50,7 @@ def get_project(project_id, user):
     if project:
         return {
             'success': True,
-            'project': project
+            'project': unmask_fields(project, project_masker)
         }, 200
     return {
         'success': False,
@@ -87,7 +87,7 @@ def get_project_by_channel_id(channel_id):
     if project:
         return {
             'success': True,
-            'project': project
+            'project': unmask_fields(project, project_masker)
         }, 200
     return {
         'success': False,

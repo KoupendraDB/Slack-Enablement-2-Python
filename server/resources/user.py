@@ -24,7 +24,7 @@ def fetch_user(key_template = None, key = None, query = {}, options = {}):
         cached_response = user_cache_controller.get_cache(key_template, key)
         if cached_response:
             return cached_response
-    user = unmask_fields(user_database.find_one(query, options), user_masker)
+    user = user_database.find_one(query, options)
     if user and key_template:
         user_cache_controller.set_cache(key_template, key, user)
     return user
@@ -55,7 +55,7 @@ def get_access_token(username, password):
 def get_user(username):
     user = fetch_user_by_username(username)
     if user:
-        return {'success': True, 'user': user}, 200
+        return {'success': True, 'user': unmask_fields(user, user_masker)}, 200
     return {'success': False}, 404
 
 @user_blueprint.post('/register')

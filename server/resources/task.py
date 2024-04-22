@@ -22,7 +22,7 @@ def fetch_task(key_template = None, key = None, query = {}, options = {}):
         cached_response = task_cache_controller.get_cache(key_template, key)
         if cached_response:
             return cached_response
-    task = unmask_fields(task_database.find_one(query, options), task_masker)
+    task = task_database.find_one(query, options)
     if task and key_template:
         task_cache_controller.set_cache(key_template, key, task)
     return task
