@@ -65,7 +65,7 @@ def modify_task(task_request, user):
     return task
 
 
-task_blueprint.get('/<string:task_id>')
+@task_blueprint.get('/<string:task_id>')
 @token_required
 def get_task(task_id, user):
     if user:
@@ -75,7 +75,7 @@ def get_task(task_id, user):
     return {'success': False}, 404
 
 
-task_blueprint.post('/')
+@task_blueprint.post('/')
 @token_required
 def post_task(user):
     task_request = request.get_json()
@@ -89,7 +89,7 @@ def post_task(user):
     return {'success': False, 'message': 'Invalid data'}, 400
 
 
-task_blueprint.patch('/<string:task_id>')
+@task_blueprint.patch('/<string:task_id>')
 @token_required
 def update_task(task_id, user):
     task_request = request.get_json()
@@ -105,7 +105,7 @@ def update_task(task_id, user):
     return {'success': False, 'message': 'Invalid data'}, 400
 
 
-task_blueprint.delete('/<string:task_id>')
+@task_blueprint.delete('/<string:task_id>')
 @token_required
 def delete_task(task_id, user):
     if user:
