@@ -139,7 +139,7 @@ def accept_project_invite(invitation_code, user):
     return {'success': False, 'message': 'Unknown error!'}, 400
 
 
-@project_blueprint.post('<string:project_id>/create-invite')
+@project_blueprint.post('/<string:project_id>/create-invite')
 @token_required
 def create_project_invite(project_id, user):
     invitees = request.get_json().get('invitees')
@@ -177,11 +177,11 @@ def create_project_invite(project_id, user):
     return {'success': False, 'message': 'Unknown error!'}, 400
 
 
-@project_blueprint.post('<string:project_id>/roll-off-members')
+@project_blueprint.post('/<string:project_id>/roll-off-members')
 @token_required
-def roll_off_member(project_id, roll_off_username, user):
+def roll_off_member(project_id, user):
     members = request.get_json().get('members', [])
-    updated_user = unmask_fields(user_database.find_one_and_update(
+    user_database.update_many(
         {
             'username': {
                 '$in': members
@@ -192,16 +192,21 @@ def roll_off_member(project_id, roll_off_username, user):
                 'projects': ObjectId(project_id)
             }
         }
-    ), user_masker)
-    
-    if updated_user:
-        project_cache_controller.delete_cache('user:username:{}', roll_off_username)
-        project_cache_controller.delete_cache('token_user_id:{}', updated_user['_id'])
-        return {'success': True}, 200
-    return {'success': False, 'message': 'Unknown error!'}, 400
+    )
+    users = list(user_database.find(
+        {
+            'username': {
+                '$in': members
+            }
+        }
+    ))
+    for user in users:
+        project_cache_controller.delete_cache('user:username:{}', user['username'])
+        project_cache_controller.delete_cache('token_user_id:{}', str(user['_id']))
+    return {'success': True}, 200
 
 
-@project_blueprint.get('<string:project_id>/members')
+@project_blueprint.get('/<string:project_id>/members')
 def get_project_members(project_id):
     users = unmask_fields(list(user_database.find(
         {
