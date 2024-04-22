@@ -206,7 +206,7 @@ def get_project_members(project_id):
     users = unmask_fields(list(user_database.find(
         {
             'projects': {
-                '$elemMatch': ObjectId(project_id)
+                '$elemMatch': {'$in': [ObjectId(project_id)]}
             }
         },
         {
