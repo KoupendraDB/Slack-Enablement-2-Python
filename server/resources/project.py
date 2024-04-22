@@ -61,8 +61,21 @@ def get_project(project_id, user):
 @token_required
 def post_project(user):
     project_request = request.get_json()
-    insert_result = project_database.insert_one(project_request)
+    project_details = project_request.get('details')
+    insert_result = project_database.insert_one(project_details)
     if insert_result and insert_result.inserted_id:
+        user_database.update_many(
+            {
+                'username': {
+                    '$in': project_request.get('members', [])
+                }
+            },
+            {
+                '$addToSet': {
+                    'projects': insert_result.inserted_id
+                }
+            }
+        )
         result = {'success': True, 'project_id': str(insert_result.inserted_id)}, 201
         return result
     return {'success': False}, 400
