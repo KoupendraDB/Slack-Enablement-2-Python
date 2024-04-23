@@ -62,6 +62,7 @@ def get_project(project_id, user):
 def post_project(user):
     project_request = request.get_json()
     project_details = project_request.get('details')
+    project_details['status'] = 'active'
     insert_result = project_database.insert_one(project_details)
     if insert_result and insert_result.inserted_id:
         user_database.update_many(
@@ -234,3 +235,47 @@ def get_project_members(project_id):
         'success': True,
         'members': users
     }, 200
+
+@project_blueprint.get('/<string:project_id>/archive')
+@token_required
+def archive_project(project_id, user):
+    user_database.update_many(
+        {
+            'projects': {
+                '$elemMatch': {'$in': [ObjectId(project_id)]}
+            }
+        },
+        {
+            '$pull': {
+                'projects': ObjectId(project_id)
+            }
+        }
+    )
+
+    project_database.update_one(
+        {
+            '_id': ObjectId(project_id)
+        },
+        {
+            '$set': {
+                'status': 'archived'
+            }
+        }
+    )
+
+    users = list(user_database.find(
+        {
+            'projects': {
+                '$elemMatch': {'$in': [ObjectId(project_id)]}
+            }
+        },
+        {
+            'password': 0
+        }
+    ))
+
+    for user in users:
+        project_cache_controller.delete_cache('user:username:{}', user['username'])
+        project_cache_controller.delete_cache('token_user_id:{}', str(user['_id']))
+
+    return {'success': True}, 200
