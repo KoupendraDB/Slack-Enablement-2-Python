@@ -76,6 +76,16 @@ def post_project(user):
                 }
             }
         )
+        users = user_database.find(
+            {
+                'username': {
+                    '$in': project_request.get('members', [])
+                }
+            }
+        )
+        for user in users:
+            project_cache_controller.delete_cache('user:username:{}', user['username'])
+            project_cache_controller.delete_cache('token_user_id:{}', str(user['_id']))
         result = {'success': True, 'project_id': str(insert_result.inserted_id)}, 201
         return result
     return {'success': False}, 400
