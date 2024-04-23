@@ -239,6 +239,17 @@ def get_project_members(project_id):
 @project_blueprint.post('/<string:project_id>/archive')
 @token_required
 def archive_project(project_id, user):
+    users = list(user_database.find(
+        {
+            'projects': {
+                '$elemMatch': {'$in': [ObjectId(project_id)]}
+            }
+        },
+        {
+            'password': 0
+        }
+    ))
+
     user_database.update_many(
         {
             'projects': {
@@ -262,17 +273,6 @@ def archive_project(project_id, user):
             }
         }
     )
-
-    users = list(user_database.find(
-        {
-            'projects': {
-                '$elemMatch': {'$in': [ObjectId(project_id)]}
-            }
-        },
-        {
-            'password': 0
-        }
-    ))
 
     for user in users:
         project_cache_controller.delete_cache('user:username:{}', user['username'])
