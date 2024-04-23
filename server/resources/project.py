@@ -236,7 +236,7 @@ def get_project_members(project_id):
         'members': users
     }, 200
 
-@project_blueprint.get('/<string:project_id>/archive')
+@project_blueprint.post('/<string:project_id>/archive')
 @token_required
 def archive_project(project_id, user):
     user_database.update_many(
