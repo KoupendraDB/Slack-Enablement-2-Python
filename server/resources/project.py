@@ -263,7 +263,7 @@ def archive_project(project_id, user):
         }
     )
 
-    project_database.update_one(
+    archived_project = project_database.find_one_and_update(
         {
             '_id': ObjectId(project_id)
         },
@@ -277,5 +277,7 @@ def archive_project(project_id, user):
     for user in users:
         project_cache_controller.delete_cache('user:username:{}', user['username'])
         project_cache_controller.delete_cache('token_user_id:{}', str(user['_id']))
+        project_cache_controller.delete_cache('project:id:{}', str(archived_project['_id']))
+        project_cache_controller.delete_cache('project:channel_id:{}', archived_project['channel_id'])
 
     return {'success': True}, 200
